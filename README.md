@@ -9,16 +9,23 @@ This repository shows how to compile a Rust application which runs on FreeRTOS.
 ```console
 $ git submodule update --init
 $ cd demo-app
-$ cargo run --release
-   Compiling freertos-sys v0.1.0 (/Users/jonathan/Documents/ferrous-systems/freertos-experiments/freertos-sys)
-   Compiling demo-app v0.0.0 (/Users/jonathan/Documents/ferrous-systems/freertos-experiments/demo-app)
-    Finished release [optimized + debuginfo] target(s) in 2.43s
+$ DEFMT_LOG=info cargo run --release
+    Finished release [optimized + debuginfo] target(s) in 0.04s
      Running `probe-rs run --chip nRF52840_xxAA target/thumbv7em-none-eabihf/release/demo-app`
-      Erasing ✔ [00:00:00] [###############################################] 12.00 KiB/12.00 KiB @ 32.70 KiB/s (eta 0s )
-  Programming ✔ [00:00:00] [###############################################] 12.00 KiB/12.00 KiB @ 42.13 KiB/s (eta 0s )    Finished in 0.672s
-Hello, this is version unknown!
-Entering FreeRTOS kernel...
-I am the test task! params = 0x0
+      Erasing ✔ [00:00:00] [############################################################################################################################] 12.00 KiB/12.00 KiB @ 31.93 KiB/s (eta 0s )
+  Programming ✔ [00:00:00] [############################################################################################################################] 12.00 KiB/12.00 KiB @ 39.68 KiB/s (eta 0s )    Finished in 0.699s
+0 INFO  Hello, this is version unknown!
+└─ demo_app::__cortex_m_rt_main @ src/main.rs:27  
+0 INFO  Entering FreeRTOS kernel...
+└─ demo_app::__cortex_m_rt_main @ src/main.rs:83  
+0 INFO  test_task2(params = 0x0, counter = 0)
+└─ demo_app::test_task2 @ src/main.rs:105 
+0 INFO  test_task1(params = 0x0, counter = 0)
+└─ demo_app::test_task1 @ src/main.rs:95  
+50 INFO  test_task1(params = 0x0, counter = 1)
+└─ demo_app::test_task1 @ src/main.rs:95  
+100 INFO  test_task1(params = 0x0, counter = 2)
+└─ demo_app::test_task1 @ src/main.rs:95  
 ```
 
 ## Licence

@@ -16,9 +16,11 @@ static BUILD_SLUG: Option<&str> = option_env!("BUILD_SLUG");
 
 const DEMO_STACK_SIZE: u16 = 1024;
 
+defmt::timestamp!("{=u32}", { unsafe { freertos_sys::xTaskGetTickCount() } });
+
 #[entry]
 fn main() -> ! {
-    defmt::println!(
+    defmt::info!(
         "Hello, this is version {}!",
         BUILD_SLUG.unwrap_or("unknown")
     );
@@ -40,16 +42,33 @@ fn main() -> ! {
 
     let _ = led.set_low();
 
+    // Create a dynamic (heap allocated) queue.
+    //
+    // We can treat this handle as having 'static lifetime.
+    //
+    // See FreeRTOSConfig.h for the default heap size.
+    let queue_handle = unsafe {
+        freertos_sys::xQueueGenericCreate(
+            // number of items
+            10,
+            // size of each item
+            1,
+            // basic queue
+            freertos_sys::_queueQUEUE_TYPE_BASE,
+        )
+    };
+
+    // Create Task 1
     unsafe {
         freertos_sys::xTaskCreate(
             // the function to call
-            Some(test_task),
+            Some(test_task1),
             // what to call it (must be a C string)
-            c!("Test").as_ptr(),
+            c!("Test1").as_ptr(),
             // how many bytes of stack
             DEMO_STACK_SIZE,
             // an argument to pass
-            core::ptr::null_mut(),
+            queue_handle as *mut core::ffi::c_void,
             // what priority to run it at
             freertos_sys::tskIDLE_PRIORITY + 1,
             // returned task handle
@@ -57,7 +76,25 @@ fn main() -> ! {
         );
     }
 
-    defmt::println!("Entering FreeRTOS kernel...");
+    // Create Task 2
+    unsafe {
+        freertos_sys::xTaskCreate(
+            // the function to call
+            Some(test_task2),
+            // what to call it (must be a C string)
+            c!("Test2").as_ptr(),
+            // how many bytes of stack
+            DEMO_STACK_SIZE,
+            // an argument to pass
+            queue_handle as *mut core::ffi::c_void,
+            // what priority to run it at
+            freertos_sys::tskIDLE_PRIORITY + 1,
+            // returned task handle
+            core::ptr::null_mut(),
+        );
+    }
+
+    defmt::info!("Entering FreeRTOS kernel...");
     unsafe {
         freertos_sys::vTaskStartScheduler();
     }
@@ -66,8 +103,49 @@ fn main() -> ! {
 }
 
 /// A function to run in a thread
-unsafe extern "C" fn test_task(params: *mut core::ffi::c_void) {
-    defmt::println!("I am the test task! params = {}", params);
+///
+/// Counts from 0 to 10, posting the counter into a queue.
+unsafe extern "C" fn test_task1(params: *mut core::ffi::c_void) {
+    defmt::info!("params = {}", params);
+    let queue = params as *mut freertos_sys::QueueDefinition;
+    loop {
+        for counter in 0u8..=10 {
+            defmt::debug!("counter = {=u8}", counter);
+            unsafe {
+                freertos_sys::xQueueGenericSend(
+                    queue,
+                    &counter as *const u8 as *const core::ffi::c_void,
+                    0,
+                    freertos_sys::_queueSEND_TO_BACK,
+                );
+            }
+            freertos_sys::vTaskDelay(1000 / freertos_sys::_portTICK_PERIOD_MS);
+        }
+    }
+}
+
+/// A second function to run in a thread
+///
+/// Waits on a queue and prints the number that comes out.
+unsafe extern "C" fn test_task2(params: *mut core::ffi::c_void) {
+    defmt::info!("params = {}", params);
+    let queue = params as *mut freertos_sys::QueueDefinition;
+    loop {
+        let mut value = 0u8;
+        // blocking queue read - zero indicates error/timeout
+        let result = unsafe {
+            freertos_sys::xQueueReceive(
+                queue,
+                &mut value as *mut u8 as *mut core::ffi::c_void,
+                freertos_sys::_portMAX_DELAY,
+            )
+        };
+        if result != 0 {
+            defmt::info!("Got value in queue: {=u8}", value);
+        } else {
+            defmt::error!("Error reading from queue");
+        }
+    }
 }
 
 // same panicking *behavior* as `panic-probe` but doesn't print a panic message
