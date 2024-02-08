@@ -1,0 +1,59 @@
+# Copyright (c) 2024 Ferrous Systems
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+name: workflow-build-everything
+run-name: Build Everything
+on: [push]
+jobs:
+  job-build-demo-app:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Arm C compiler
+        run: |
+          sudo apt-get update -y && sudo apt-get -y install gcc-arm-none-eabi
+      - name: Install tools
+        uses: taiki-e/install-action@v2
+        with:
+          tool: flip-link@0.1.7
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          submodules: 'true'
+      - name: Add rustup target
+        run: |
+          rustup target add thumbv7em-none-eabihf
+      - name: Find slug name
+        run: |
+          slug=$(./describe.sh "${GITHUB_REF}")
+          echo "Building with slug '${slug}'"
+          echo "BUILD_SLUG=${slug}" >> "${GITHUB_ENV}"
+      - name: Check Demo App
+        run: |
+          cd demo-app
+          cargo check --target=thumbv7em-none-eabihf
+      - name: Build Demo App
+        run: |
+          cd demo-app
+          cargo build --target=thumbv7em-none-eabihf --release
+      - name: Upload demo-app
+        uses: actions/upload-artifact@master
+        with:
+          name: demo-app
+          path: demo-app/target/thumbv7em-none-eabihf/release/demo-app
+  job-build-freertos-sys:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Arm C compiler
+        run: |
+          sudo apt-get update -y && sudo apt-get -y install gcc-arm-none-eabi
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          submodules: 'true'
+      - name: Add rustup target
+        run: |
+          rustup target add thumbv7em-none-eabihf 
+      - name: Build freertos-sys
+        run: |
+          cd freertos-sys
+          cargo build --target=thumbv7em-none-eabihf 

@@ -1,0 +1,27 @@
+# Copyright (c) 2024 Ferrous Systems
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+name: workflow-code-format
+run-name: Check code formatting
+on: [push]
+jobs:
+  job-format-demo-app:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Check Formatting
+        run: |
+          cd demo-app
+          cargo fmt -- --check
+  job-format-freertos-sys:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          submodules: 'true'
+      - name: Check Formatting
+        run: |
+          cd freertos-sys
+          cargo fmt -- --check
