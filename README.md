@@ -28,6 +28,16 @@ $ DEFMT_LOG=info cargo run --release
 └─ demo_app::test_task1 @ src/main.rs:95  
 ```
 
+## Prerequisites
+
+FreeRTOS is downloaded in source form using a git submodule. Ensure you have fetched the submodule, e.g. with:
+
+```sh
+git submodule update --init
+```
+
+Because FreeRTOS is written in C, you will require a C compiler for your target. We compile the C code using the [`cc` crate](https://crates.io/crates/cc) which does a good job of finding an appropriate C compiler. You can download Arm's build of [GCC for arm-none-eabi](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads), or your system package manager might provide `gcc-arm-none-eabi` or `arm-none-eabi-gcc` packages.
+
 ## Licence
 
 * Copyright (c) 2024 Ferrous Systems
