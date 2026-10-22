@@ -9,23 +9,27 @@
 use byte_strings::c;
 use cortex_m_rt::entry;
 use defmt_rtt as _;
-use nrf52840_hal::prelude::OutputPin;
+use embedded_hal::digital::OutputPin;
 use panic_probe as _;
 
 static BUILD_SLUG: Option<&str> = option_env!("BUILD_SLUG");
 
 const DEMO_STACK_SIZE: u16 = 1024;
 
-defmt::timestamp!("{=u32}", { unsafe { freertos_sys::xTaskGetTickCount() } });
+defmt::timestamp!("{=u32:tus}", cortex_m::peripheral::DWT::cycle_count() / 64);
 
 #[entry]
 fn main() -> ! {
+    let pp = nrf52840_hal::pac::Peripherals::take().unwrap();
+    let mut cp = cortex_m::Peripherals::take().unwrap();
+    cp.DCB.enable_trace();
+    cp.DWT.set_cycle_count(0);
+    cp.DWT.enable_cycle_counter();
+
     defmt::info!(
         "Hello, this is version {}!",
         BUILD_SLUG.unwrap_or("unknown")
     );
-
-    let pp = nrf52840_hal::pac::Peripherals::take().unwrap();
 
     let clocks = nrf52840_hal::Clocks::new(pp.CLOCK);
     let clocks = clocks.enable_ext_hfosc();
@@ -119,7 +123,9 @@ unsafe extern "C" fn test_task1(params: *mut core::ffi::c_void) {
                     freertos_sys::_queueSEND_TO_BACK,
                 );
             }
-            freertos_sys::vTaskDelay(1000 / freertos_sys::_portTICK_PERIOD_MS);
+            unsafe {
+                freertos_sys::vTaskDelay(1000 / freertos_sys::_portTICK_PERIOD_MS);
+            }
         }
     }
 }

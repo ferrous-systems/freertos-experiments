@@ -4,14 +4,14 @@ This repository shows how to compile a Rust application which runs on FreeRTOS.
 
 * `freertos-kernel` is a git submodule to the FreeRTOS github repo
 * `freertos-sys` is a Rust library which runs bindgen on the FreeRTOS headers, and compiles the FreeRTOS source for Cortex-M4F
-* `demo-app` is a Rust application which uses `freertos-sys`, which runs on the nRF52840DK
+* `nrf52-app` is a Rust application which uses `freertos-sys`, which runs on the nRF52840DK
 
 ```console
 $ git submodule update --init
-$ cd demo-app
+$ cd nrf52-app
 $ DEFMT_LOG=info cargo run --release
     Finished release [optimized + debuginfo] target(s) in 0.04s
-     Running `probe-rs run --chip nRF52840_xxAA target/thumbv7em-none-eabihf/release/demo-app`
+     Running `probe-rs run --chip nRF52840_xxAA target/thumbv7em-none-eabihf/release/nrf52-app`
       Erasing ✔ [00:00:00] [############################################################################################################################] 12.00 KiB/12.00 KiB @ 31.93 KiB/s (eta 0s )
   Programming ✔ [00:00:00] [############################################################################################################################] 12.00 KiB/12.00 KiB @ 39.68 KiB/s (eta 0s )    Finished in 0.699s
 0 INFO  Hello, this is version unknown!

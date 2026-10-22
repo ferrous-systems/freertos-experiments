@@ -16,12 +16,15 @@ fn main() {
     // If they don't give us one, use our example config
     let config_path: PathBuf = maybe_path.as_deref().unwrap_or("example").into();
 
-    build_headers(&freertos_path, &config_path);
-    build_library(&freertos_path, &config_path);
+    let port = std::env::var("FREERTOS_SYS_PORT");
+    let port = port.as_deref().unwrap_or("GCC/ARM_CM4F");
+
+    build_headers(&freertos_path, &config_path, port);
+    build_library(&freertos_path, &config_path, port);
 }
 
 /// Convert the FreeRTOS header file into a Rust crate
-fn build_headers(freertos_path: &Path, config_path: &Path) {
+fn build_headers(freertos_path: &Path, config_path: &Path, port: &str) {
     // The bindgen::Builder is the main entry point
     // to bindgen, and lets you build up options for
     // the resulting bindings.
@@ -33,7 +36,7 @@ fn build_headers(freertos_path: &Path, config_path: &Path) {
         .clang_arg(format!("-I{}", freertos_path.join("include").display()))
         .clang_arg(format!(
             "-I{}",
-            freertos_path.join("portable/GCC/ARM_CM4F").display()
+            freertos_path.join("portable").join(port).display()
         ))
         .clang_arg(format!("-I{}", config_path.display()))
         // Add some custom headers
@@ -42,10 +45,6 @@ fn build_headers(freertos_path: &Path, config_path: &Path) {
         .clang_arg("-nostdinc")
         // Set the target
         .clang_arg("--target=arm")
-        .clang_arg("-mthumb")
-        .clang_arg("-mcpu=cortex-m4")
-        // Use hardfp
-        .clang_arg("-mfloat-abi=hard")
         // We're no_std
         .use_core()
         // Format the output
@@ -65,13 +64,13 @@ fn build_headers(freertos_path: &Path, config_path: &Path) {
 }
 
 /// Compile the FreeRTOS kernel and link it
-fn build_library(freertos_path: &Path, config_path: &Path) {
+fn build_library(freertos_path: &Path, config_path: &Path, port: &str) {
     cc::Build::new()
         .include(freertos_path.join("include"))
-        .include(freertos_path.join("portable/GCC/ARM_CM4F"))
+        .include(freertos_path.join("portable").join(port))
         .include(config_path)
         .opt_level_str("s")
-        .file(freertos_path.join("portable/GCC/ARM_CM4F/port.c"))
+        .file(freertos_path.join("portable").join(port).join("port.c"))
         .file(freertos_path.join("portable/MemMang/heap_4.c"))
         .file(freertos_path.join("croutine.c"))
         .file(freertos_path.join("queue.c"))
